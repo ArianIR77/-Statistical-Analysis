@@ -1,0 +1,822 @@
+---
+title: "InClass_Week7"
+output: html_notebook
+---
+
+Why do we need inferential statistics?
+
+* Using information from a sample to make claims about a population is      called inference and that statistical methods used for inference are      inferential statistics. 
+* For example, the confidence intervals for the sample mean and sample      percentage are ranges where the population mean or population percentage   likely lies. 
+* Essentially, the idea of inferential statistics is that samples can be    used to understand populations.
+
+How to conduct commonly used inferential statistical tests in R?
+
+* The chi-squared test of independence, which is a statistical test to      understand whether there is a relationship between two categorical        variables. 
+* The chi-squared test of independence is one of a few bivariate, or        two-variable, tests that are widely used in statistical analyses across   many fields. 
+
+```{r}
+install.packages("fmsb", dependencies = TRUE)
+```
+
+```{r}
+install.packages("lsr", dependencies = TRUE)
+```
+
+
+###########################Loading the packages##########################
+```{r}
+packages <- c('tidyverse','haven','descr','fmsb','lsr','gridExtra')
+```
+
+```{r}
+purrr::walk(packages,library,character.only=T)
+```
+
+########################################################################
+
+New functions introduced in this chapter:
+* read_sav() from haven package -> read well-formatted SPSS file with .sav                                    extension
+* zap_labels() -> to remove super long label names
+* spread() from tidyverse package -> used to spread data out into columns
+* chisq.test()-> to compute chi-squared statistic
+* CrossTable() from descr package -> standardized residuals
+* cramersV() -> Cramer's coefficient
+* oddsratio() function in the fmsb package -> to compute odds ratio
+
+########################################################################
+NOTE: 
+
+* Before conducting any sort of inferential analyses that use sample data   to understand a population, it is a best practice to get to know the      sample data using descriptive statistics and graphics. This step in       research is often called exploratory data analysis or EDA. 
+* The descriptive statistics for EDA examining categorical variables are    frequencies and percentages (Covered in TXT1 Chapter 2)
+
+
+How to import SPSS-formatted data with .sav extension?
+
+-- USE read_sav() from haven package
+-- The imported data from haven package works well with tidyverse
+
+Actual dataset has 49 variables.
+
+Extract variables of our interest alone.
+
+All of the variables of our interest for this chapter are categorical and nominal (i.e., they don't have any inherent order):
+* pew1a, pew1b,race, sex, mstatus (marital status), ownhome (home ownership), employ, and polparty (political party affiliation). 
+
+```{r}
+# import the voting data
+vote <- read_sav(file = "pew_apr_19-23_2017_weekly_ch5.sav")
+```
+
+```{r}
+# select variables of interest
+vote.cleaned <- vote %>%
+  select(pew1a, pew1b, race, sex, mstatus, ownhome, employ, polparty)
+```
+
+```{r}
+# check data
+summary(object = vote.cleaned)
+```
+
+
+```{r}
+View(vote.cleaned)
+#Note: The second line below the label will have the entire question listed
+```
+
+
+```{r}
+# select variables of interest and clean them
+vote.cleaned <- vote %>%
+select(pew1a, pew1b, race, sex, mstatus, ownhome, employ, polparty) %>%
+zap_labels() %>% #to remove super long labels
+mutate(pew1a = recode_factor(.x = pew1a,
+                              `1` = 'Register to vote',
+                              `2` = 'Make easy to vote',
+                              `5` = NA_character_,
+                              `9` = NA_character_)) %>%
+rename(ease.vote = pew1a) %>%
+mutate(pew1b = recode_factor(.x = pew1b,
+                `1` = 'Require to vote',
+                `2` = 'Choose to vote',
+                `5` = NA_character_,
+                `9` = NA_character_)) %>%
+rename(require.vote = pew1b)
+```
+
+
+99 category - Don't know/refused
+
+```{r}
+# check voting variables
+summary(object = vote.cleaned)
+```
+
+* How many people with there in each category of race?
+
+```{r}
+# examine race variable before recoding
+table(vote.cleaned$race)
+```
+
+Interpretation: Few categories like 8 and 9 had very few people
+                Similarly, Don't know/ Refused (99) category had only 25                 value. Next step, we can recode it as  as NA
+                
+```{r}
+# select variables of interest and clean them
+
+vote.cleaned <- vote %>%
+    select(pew1a, pew1b, race, sex, mstatus, ownhome, employ, polparty) %>%
+    zap_labels() %>% #to remove super long labels
+    mutate(pew1a = recode_factor(.x = pew1a,
+                    `1` = 'Register to vote',
+                    `2` = 'Make easy to vote',
+                    `5` = NA_character_,
+                    `9` = NA_character_)) %>%
+    rename(ease.vote = pew1a) %>%
+    mutate(pew1b = recode_factor(.x = pew1b,
+                    `1` = 'Require to vote',
+                    `2` = 'Choose to vote',
+                    `5` = NA_character_,
+                    `9` = NA_character_)) %>%
+rename(require.vote = pew1b) %>%
+mutate(race = recode_factor(.x = race,
+                    `1` = 'White non-Hispanic',
+                    `2` = 'Black non-Hispanic',
+                    `3` = 'Hispanic',
+                    `4` = 'Hispanic',
+                    `5` = 'Hispanic',
+                    `6` = 'Other',
+                    `7` = 'Other',
+                    `8` = 'Other',
+                    `9` = 'Other',
+                    `10` = 'Other',
+                    `99` = NA_character_)) %>%
+mutate(sex = recode_factor(.x = sex,
+                    `1` = 'Male',
+                    `2` = 'Female')) %>%
+    mutate(ownhome = recode_factor(.x = ownhome,
+                        `1` = 'Owned',
+                        `2` = 'Rented',
+                        `8` = NA_character_,
+                        `9` = NA_character_))
+```
+
+    
+```{r}
+# check recoding
+summary(object = vote.cleaned)
+```
+            
+#########Using descriptive statistics to examine the relationship between two categorical variable####################################
+
+Examine the relationship between ease of voting and sex
+
+First we will not use spread() function and then we will use spread() to compare the output to see how the data looked
+
+WITHOUT USING spread():
+
+```{r}
+# voting ease by race-eth no spread
+vote.cleaned %>%
+    drop_na(ease.vote) %>%
+    drop_na(race) %>%
+    group_by(ease.vote, race) %>%
+  summarize(freq.n = n())
+```
+
+
+USING spread():
+
+```{r}
+# voting ease by race-eth with spread
+vote.cleaned %>%
+      drop_na(ease.vote) %>%
+      drop_na(race) %>%
+      group_by(ease.vote, race) %>%
+      summarize(freq.n = n()) %>%
+      spread(key = race, value = freq.n)
+```
+
+Another simple way to get the above output:
+
+* Using table() function
+
+```{r}
+# voting ease by race with table
+table(vote.cleaned$ease.vote, vote.cleaned$race)
+```
+
+* Making use of percentages with labels will make the output more clear
+
+```{r}
+# table of percents voting ease by race-eth
+prop.table(x = table(Voting.ease = vote.cleaned$ease.vote,
+                      Race.eth = vote.cleaned$race))
+```
+
+Interpretation: In the above table, the percentages added up to 100% for whole table
+
+* Converting to percentages for each category of race-ethnicity
+ - If you give margin =1 -> row percentages
+ - If you give margin = 2 -> column percentages
+
+```{r}
+# table of percents voting ease by race-eth
+prop.table(x = table(Voting.ease = vote.cleaned$ease.vote,
+                     Race.eth = vote.cleaned$race),
+          margin = 2)
+```
+
+Interpretation from the above table: 
+* White non-Hispanic participants were fairly evenly divided between       those who thought people should register if they want to vote and those   who thought voting should be made as easy as possible.
+* The other three race-ethnicity groups had larger percentages in favor    of making it as easy as possible to vote, with Black non-Hispanic        participants having the highest percentage (77.78%) in favor of making   it easy to vote.
+
+
+NEXT, examine require.vote with race-ethnicity instead of ease.vote
+
+```{r}
+# table of percents voting required by race-eth
+prop.table(x = table(Voting.requirement = vote.cleaned$require.vote,
+            Race.eth = vote.cleaned$race),
+            margin = 2)
+```
+
+Inerpretation from the above table:
+* Most participants from the White non-Hispanic group were in favor of     letting people choose whether to vote, while the percentage in favor of   being required to vote was more than twice as high for Black             non-Hispanic and Hispanic participants. 
+* The Other group was more similar to the non-Hispanic White group. 
+
+
+FINALLY, what can we interpret from the above analysis??????
+* Being required to vote or choosing to vote was different by              race-ethnicity.
+
+#######Using graphs to examine the relationship between two categorical variables#############################################################
+
+* Check if data visualization provide us any additional information
+
+```{r}
+library(gridExtra)
+```
+
+First to graph the relationship between registration ease and race ethnicity
+
+```{r}
+# graph the relationship between registration ease and race eth
+ease.graph <- vote.cleaned %>%
+              drop_na(ease.vote) %>%
+              drop_na(race) %>%
+              group_by(ease.vote, race) %>%
+              count() %>%
+              group_by(race) %>%
+              mutate(perc = 100*n/sum(n)) %>%
+              ggplot(aes(x = race, y = perc, fill = ease.vote)) +
+              geom_bar(position = "dodge", stat = "identity") +
+              theme_minimal() +
+              scale_fill_manual(values = c("gray", "#7463AC"),
+              name = "Opinion on\nvoter registration") +
+              labs(x = "", y = "Percent within group") +
+              theme(axis.text.x = element_blank())
+```
+
+Second to graph the relationship between requirement of voting and race ethnicity
+
+```{r}
+req.graph <- vote.cleaned %>%
+             drop_na(require.vote) %>%
+             drop_na(race) %>%
+             group_by(require.vote, race) %>%
+             count() %>%
+             group_by(race) %>%
+             mutate(perc = 100*n/sum(n)) %>%
+             ggplot(aes(x = race, y = perc, fill = require.vote)) +
+             geom_bar(position = "dodge", stat = "identity") +
+             theme_minimal() +
+             scale_fill_manual(values = c("gray", "#7463AC"),
+             name = "Opinion on voting") +
+             labs(x = "Race-ethnicity group", y = "Percent within group")
+```
+
+* To put the two plots together
+```{r}
+grid.arrange(ease.graph, req.graph, nrow = 2)
+```
+Interpretation from the above graph:
+* This was easier to examine than the tables, and the differences were     quickly clear. 
+
+FINAL INTERPRETATION BASED ON BOTH DESCRIPTIVE AND VISUAL EXPLORATORY DATA ANALYSIS:
+* Race-ethnicity was related to opinions about voter registration and      voting requirements. 
+* Specifically, there was a higher percentage of White non-Hispanic        participants supporting choosing to vote, while the highest percentage   supporting making it easy to vote were Black non-Hispanic participants.
+
+#############################Computing and comparing observed and expected values for the groups##########################################
+
+OBSERVED VALUES:
+
+* It looked like there were some differences among the race-ethnicity      groups in support for ease of voter registration and for requirements    to vote. 
+
+CHI-SQUARED TEST
+* The chi-squared test is useful for testing to see if there may be a      statistical relationship between two categorical variables. 
+* The chi-squared test is based on the observed values, like the ones in   the tables we created (Line 181), and the values expected to occur if    there were no relationship between the variables.
+
+That is, given overall frequencies for the two variables from the data summary, how many people would we expect to be in each of the cells of the table just shown?
+
+```{r}
+#========================================================================
+#             White non-Hispanic Black non-Hispanic Hispanic Other Total
+#----------------------------------------------------------------------
+
+#Register to vote                                                   398
+#Make easy to vote                                                  579
+
+#Total               630              126             148     73    977
+
+## ----------------------------------------------------------------------
+```
+
+
+How can we get the values?????
+
+By using the formula,
+                    (rowTotal * columnTotal) / Total
+
+White_non-Hispanic - WNH
+Black_non-Hispanic - BNH
+
+
+```{r}
+#========================================================================
+#                       WNH         BNH     Hispanic      Other    Total
+#----------------------------------------------------------------------
+
+#Register to vote   398x630/977 398x126/977 398x148/977 398x73/977  398
+#Make easy to vote  579x630/977 579x126/977 579x148/977 579x73/977  579
+
+#Total               630              126             148     73    977
+
+## ----------------------------------------------------------------------
+```
+
+```{r}
+#========================================================================                                              WHN        BNH      Hispanic       Other   Total
+#------------------------------------------------------------------------
+
+#Register to vote       
+#(observed)             292        28         51            27      398
+
+#Register to vote 
+#(expected)             256.6      51.3      60.3           29.7    398
+
+
+#Make easy to vote 
+#(observed)             338        98         97            46      579
+
+#Make easy to vote 
+#(expected)             373.4      74.7       87.7          43.3    579
+
+#Total                  630        126        148           73      977
+
+#------------------------------------------------------------------------
+```
+
+What can we interpret from the expected and observed values table?
+* Many of the cells have observed and expected values that are very close   to each other. 
+* For example, the observed number of Other race-ethnicity people who      want to make it easy to vote is 46 (check line 365), while the expected   is 43.3 (check line 368). 
+* Some categories show bigger differences. 
+* For example, the observed number of Black non-Hispanics who think        people should register to vote is 28 (check line 358), and the expected   value is nearly twice as high at 51.3 (check line 361).
+
+######################Comparing observed and expected values############
+
+* If there were no relationship between opinions on voting ease and        race-ethnicity, the observed and expected values would be the same.   
+* That is, the observed data would show that 373.4 (check line 368) White   non-Hispanic people wanted to make it easy to vote.
+
+
+NOTE:
+* Differences between observed values and expected indicates that there    may be a relationship between the variables. 
+* In this case, it looks like there are more people than expected who      want to make voting easier in all the categories, except non-Hispanic    White. 
+* In the non-Hispanic White category, there are more people than expected   who want people to prove they want to vote by registering. 
+* This suggests that there may be some relationship between opinions       about the ease of voting and race-ethnicity.
+
+
+##############ASSUMPTIONS OF CHI-SQUARED TEST OF INDEPENDENCE############
+
+* There are lists of requirements that must be met before using a          statistical test.
+
+3 Assumptions:
+
+Assumption 1:
+- The variables must be nominal or ordinal (usually nominal).
+  (Race has categories that are in no particular order, so it is nominal.    The ease of voting variable has categories that are in no particular     order, so it is also nominal. This assumption is met.)
+
+Assumption 2:
+- The expected values should be 5 or higher in at least 80% of groups.
+  (The groups are the different cells of the table, so White non-Hispanic    participants who think people should register to vote is one group. 
+   In this example, there are 8 groups, so 80% of this would be 6.4         groups. Since there is no way to have .4 of a group, 7 or more of the    groups should have expected values of 5 or more. 
+   None of the groups have expected values even close to 5; all are much    higher. This assumption is met.)
+
+Assumption 3:   
+- The observations must be independent.
+  (There are a couple of ways observations can be nonindependent. 
+   One way to violate this assumption would be if the data included the     same set of people before and after some intervention or treatment. 
+   Another way to violate this assumption would be for the data to          include siblings or parents and children or spouses or other people      who are somehow linked to one another. 
+   Since people who are linked to each other often have similar             characteristics, statistical tests on related observations need to be    able to account for this, and the chi-squared test does not. 
+   The Pew data included independent observations (not siblings or other    related people and not the same people measured more than once), so      this assumption is met.)
+
+###################Calculating the chi-squared statistic for the test of independence######################################################
+
+Step 1: Summing the differences between observed and expected values
+Step 2: Squaring the summed differences and dividing by their expected           value
+
+How to compute using R?
+
+```{r}
+# chi-squared statistic for ease of voting and race
+chisq.test(x = vote.cleaned$ease.vote, y = vote.cleaned$race)
+```
+
+You get same X-squared value of 28.952 what you get manually:
+
+(((292-256.6)^2)/256.6)  + (((28-51.3)^2)/51.3) + (((51-60.3)^2)/60.3) +
+(((338-373.4)^2)/373.4)  + (((98-74.7)^2)/74.7) + (((97-87.7)^2)/87.7) + 
+(((46-43.3)^2)/43.3)  = 28.952
+
+df: degrees of freedom -> population mean of the distribution
+
+To get population population standard deviation: square_root(2*df)
+
+How to get values of df for any chi-squared test?
+- Subtract 1 from the number of categories for each of the variables in    the test, then multiply the resulting numbers together. 
+- For the ease of voting (2 categories) and race (4 categories), the       chi-squared distribution would have (2 – 1)(4 – 1) degrees of freedom,   which is 3 degrees of freedom. 
+
+
+When chi-squared statistic is large, it is because the observed values are different from the expected values -> suggesting a relationship between variables
+
+########Using the chi-squared distribution to determine probability#####
+
+The chi-squared from the voting data was 28.952 with df = 3
+
+```{r}
+curve(dchisq(x, df = 3), from = 0, to = 30,
+      main = 'Chi-Square Probability Distribution (df = 3)', #add title
+      ylab = 'Probability Density', #change y-axis label
+      xlab = 'Chi-squared statistic', # change x-axis label
+      lwd = 2, #increase line width to 2
+      col = 'steelblue') #change line color to steelblue
+```
+Interpretation: 
+* By the time the distribution gets to chi-squared = 20, there is so       little space under the curve that it is impossible to see. 
+* Obtaining a   value of chi-squared as large as 28.952 or larger in this   sample has an extremely low probability if there were no relationship    between the two variables in the population that was sampled. 
+
+p-value:
+* In most of the fields, a p-value less than .05 is considered             statistically significant (other values like 0.1 or 0.001 could also be   used).
+* Probabilities as small as .000002293 are reported as suggesting that     the differences between observed and expected are statistically          significant. 
+* This does not necessarily mean the differences are important or          practically significant, just that they are bigger than what would most   likely have happened if there were no relationship in the population     between the variables involved.
+
+* The p-value here is .000002293. 
+* The probability of getting a chi-squared of 28.953 is very tiny, close   to—but not exactly—zero. 
+* This is consistent with the graph showing very little space between the   distribution curve and the x-axis. 
+
+What should we infer from having high chi-squared value and low p-value?
+* A chi-squared this big, and the corresponding p-value this small, means   the observed values were much different from what we would have          expected to see if there were no relationship between opinion on voter   registration and race-ethnicity in the population sampled.
+
+How should the above values from chi-squared test be reported?
+
+    There was a statistically significant association between views on       voting ease and race-ethnicity [χ2(3) = 28.95; p < .05].
+    
+#########################################################################
+
+###########Using Null Hypothesis Significance Testing (NHST) to organize statistical testing###################################################
+
+5 Steps of NHST:
+* Write the null and alternate hypotheses.
+* Compute the test statistic.
+* Calculate the probability that your test statistic is at least as big    as it is if there is no relationship (i.e., the null is true).
+* If the probability that the null is true is very small, usually less     than 5%, reject the null hypothesis.
+* If the probability that the null is true is not small, usually 5% or     greater, retain the null hypothesis.
+
+####################################################
+NHST Step 1: Write the null and alternate hypotheses
+####################################################
+
+* The null hypothesis is usually a statement that claims there is no       difference or no relationship between things, whereas the alternate      hypothesis is the claim that there is a difference or a relationship     between things. 
+* The null (H0) and alternate (HA or H1) hypotheses are written about the        population and are tested using a sample from the population. 
+* Here are the null and alternate hypotheses for the voting data:
+  
+  H0: People’s opinions on voter registration are the same across              race-ethnicity groups.
+  HA: People’s opinions on voter registration are not the same across          race-ethnicity groups.
+
+#######################################
+NHST Step 2: Compute the test statistic
+#######################################
+
+The test statistic to use when examining a relationship between two categorical variables is the chi-squared statistic, χ2.
+
+```{r}
+# chi-squared statistic for ease of voting and race
+chisq.test(x = vote.cleaned$ease.vote, y = vote.cleaned$race)
+```
+
+The test statistic is χ2 : 28.952
+
+####################################################################
+NHST Step 3: Calculate the probability that your test statistic is at least as big as it is if there is no relationship (i.e., the null is true)
+#####################################################################
+
+The probability of seeing a chi-squared as big as 28.95 in our sample if there were no relationship in the population between opinion on voting ease and race-ethnicity group would be 0.000002293 or p < .05.
+
+#####################################################################
+NHST Step 4: If the probability that the null is true is very small, usually less than 5%, reject the null hypothesis.
+####################################################################
+
+p = 0.000002293 or p < .05.
+Hence, Rejecting null hypothesis
+
+#####################################################################
+NHST Step 5: If the probability that the null is true is not small, usually 5% or greater, retain the null hypothesis
+#####################################################################
+
+Not applicable here as p < 0.05 (i.e.,p = 0.000002293)
+
+
+How to report the full interpretation after we do the five steps of NHST?????
+
+  We used the chi-squared test to test the null hypothesis that there was   no relationship between opinions on voter registration and               race-ethnicity group. We rejected the null hypothesis and concluded      that there was a statistically significant association between views on   voter registration and race-ethnicity [χ2(3) = 28.95; p < .05].
+  
+  
+NOTE the difference between chi-squared test of independence vs goodness-of-fit:
+
+* The chi-squared test of independence tests whether there is a relationship between two categorical variables. 
+* The chi-squared goodness-of-fit test is used in a different situation. 
+* Specifically, the chi-squared goodness-of-fit test is used for           comparing the values of a single categorical variable to values from a   hypothesized or population variable. 
+* The goodness-of-fit test is often used when trying to determine if a     sample is a good representation of the population.
+
+Example:
+H0: The proportions of people in each race-ethnicity category in the sample are the same as the proportions of people in each race-ethnicity category in the U.S. population.
+HA: The proportions of people in each race-ethnicity category in the sample are not the same as the proportions of people in each race-ethnicity category in the U.S. population.
+
+LIMITATION OF CHI-SQUARED INDEPENDENCE TEST:
+* It determines whether or not there is a statistically significant        relationship between two categorical variables but does not identify     what makes the relationship significant. 
+
+####################Using standardized residuals following chi-squared tests################################################################
+
+* Standardized residuals (like z-scores) can aid analysts in determining   which of the observed frequencies are significantly larger or smaller    than expected. 
+* The standardized residual is computed by subtracting the expected value   in a cell from the observed value in a cell and dividing by the square   root of the expected value
+* The resulting value is the standardized residual and is distributed      like a z-score. 
+* Values of the standardized residuals that are higher than 1.96 or lower   than –1.96 indicate that the observed value in that group is much        higher or lower than the expected value. 
+* These are the groups that are contributing the most to a large           chi-squared statistic and could be examined further and included in the   interpretation.
+* Standardized residuals are available with the chi-squared statistic      from the CrossTable() function in the descr package. 
+
+
+```{r}
+# chi-squared examining ease of voting and race
+CrossTable(x = vote.cleaned$ease.vote,
+           y = vote.cleaned$race,
+           expected = TRUE, # expected value
+           prop.c = FALSE, # default to include proportions in the column (disabling that by assigning FALSE)
+           prop.t = FALSE, # default to include proportion out of total (disabling that by assigning FALSE)
+           prop.chisq = FALSE, # default to include proportions of the chi-squared (disabling that by assigning FALSE)
+           chisq = TRUE, # chi-squared
+           sresid = TRUE) #standardized residuals
+```
+
+From line 559:
+* Values of the standardized residuals that are higher than 1.96 or lower   than –1.96 indicate that the observed value in that group is much        higher or lower than the expected value. 
+
+
+Interpretation:
+
+* The standardized residuals are shown in the last row of each cell (see   the key at the top of the table to figure this out) with an absolute     value higher than 1.96 in the White non-Hispanic group for “Register to   vote” (std. res. = 2.207) and Black non-Hispanic group for both          categories; the standardized residual was –3.256 for “Register to vote”   and 2.700 for “Make easy to vote.”
+* The 2.207 value for White non-Hispanic who selected “Register to vote”   indicates that more White non-Hispanic people than expected selected     that option. 
+* The –3.256 for Black non-Hispanic indicated that fewer Black             non-Hispanic people than expected selected “Register to vote.”
+* Finally,the 2.700 for Black non-Hispanic indicated that more Black       non-Hispanic people than expected selected “Make easy to vote.” 
+* The Hispanic and Other race-ethnicity groups did not have more or fewer   than expected observations in either category. 
+* The significant chi-squared result was driven by more White              non-Hispanic and fewer Black non-Hispanic people feeling that people     should prove they want to vote by registering and more Black             non-Hispanic people feeling that the process for voting should be made   easier.
+
+
+How to report the added interpretation from above??????
+
+  We used the chi-squared test to test the null hypothesis that there was   no relationship between opinions on voter registration by                race-ethnicity group. We rejected the null hypothesis and concluded      that there was a statistically significant association between views on   voter registration and race-ethnicity [χ2(3) = 28.95; p < .05]. Based    on standardized residuals, the statistically significant chi-squared     test result was driven by more White non-Hispanic participants and       fewer Black non-Hispanic participants than expected believe that people   should prove they want to vote by registering, and more Black            non-Hispanic participants than expected believe that the voting process   should be made easier.
+
+
+######################Computing and interpreting effect sizes to understand the strength of a significant chi-squared relationship########
+
+* Computing the Cramér’s V statistic
+
+  The strength of a relationship in statistics is referred to as effect    size. 
+  For chi-squared, there are a few options, including the commonly used    effect size statistic of Cramér’s V.
+          V = square_root(χ2/(n(k-1))) 
+
+In voting example, k=2 (two categories of voting easy variable)
+      n =977 (check line 326)
+      χ2= 28.952 (check line 434)
+      
+  V= square_root(28.952/(977(2-1)))= 0.17
+  
+```{r}
+# compute Cramér’s V for voting ease and race 
+# chi-squared analysis
+#library(package = "lsr")
+cramersV(x = vote.cleaned$ease.vote, y = vote.cleaned$race)
+#output: 0.1721427
+```
+
+How to interpret Cramer's V?
+* Small or weak effect size for V = .1
+* Medium or moderate effect size for V = .3
+* Large or strong effect size for V = .5
+
+In this case, the effect size is between small and medium. 
+
+Interpretation:
+
+There is a statistically significant relationship between opinions on voter registration and race-ethnicity, and the relationship is weak to moderate. 
+
+
+###############An example of chi-squared for two binary variables#######
+
+####################################################
+NHST Step 1: Write the null and alternate hypotheses
+####################################################
+
+H0: Opinions on voter registration are the same by home ownership status.
+HA: Opinions on voter registration are not the same by home ownership status.
+
+#################################################
+NHST Step 2: Compute the test statistic
+#################################################
+
+```{r}
+# chi-squared examining ease of voting and race-ethnicity category
+CrossTable(x = vote.cleaned$ease.vote,
+           y = vote.cleaned$ownhome,
+          expected = TRUE,
+          prop.c = FALSE,
+          prop.t = FALSE,
+          prop.chisq = FALSE,
+          chisq = TRUE,
+          sresid = TRUE)
+```
+Output: Chi^2 = 5.898905 df=1 p=0.0152
+
+#########################################################################
+Step 3: Calculate the probability that your test statistic is at least as big as it is if there is no relationship (i.e., the null is true)
+#########################################################################
+
+The p-value is .0152.
+
+###############################################################
+Step 4 and 5:Interpret the probability and write a conclusion
+###############################################################
+
+There was a statistically significant relationship between opinion on registering to vote and home ownership [χ2(1) = 5.90; p = .02].
+
+#################################################
+Few additional things to be noted
+#################################################
+* The Yates continuity correction for the second version of the            chi-squared subtracts an additional .5 from the difference between       observed and expected in each group, or cell of the table, making the    chi-squared test statistic value smaller, making it harder to reach      statistical significance. 
+* This correction is used when both variables have just two categories  
+* The CrossTable() function used for this analysis gives both the          uncorrected and the corrected chi-squared, while the chisq.test()        function gives only the corrected result unless an argument is added.
+
+```{r}
+# checking chisq.test function
+chisq.test(x = vote.cleaned$ease.vote, y = vote.cleaned$ownhome)
+```
+
+```{r}
+# removing the Yates correction
+chisq.test(x = vote.cleaned$ease.vote, y = vote.cleaned$ownhome, 
+           correct = FALSE)
+```
+
+
+###################Computing and interpreting the effect size###########
+
+* Once the analysis reveals a significant relationship, the standardized   residuals and effect size are useful in better understanding the         relationship. 
+* In the initial analyses above, it appears that all of the standardized   residuals were of a smaller magnitude. The group with the largest        standardized residual was the one made up of those renting their homes   who feel that people should have to register to vote. 
+* This group had a –1.58 standardized residual, indicating fewer people    than expected were in this group. None of the standardized residuals     were outside the –1.96 to 1.96 range, though.
+
+```{r}
+#compute Cramér’s V for voting ease and home owning
+cramersV(x = vote.cleaned$ease.vote, y = vote.cleaned$ownhome)
+## [1] 0.07750504
+```
+Interpretation:
+* The value of V=0.07750504 for this analysis falls into the weak or small effect size range. 
+
+
+
+```{r}
+curve(dchisq(x, df = 2), from = 0, to = 30,
+      main = 'Chi-Square Probability Distribution (df = 2)', #add title
+      ylab = 'Probability Density', #change y-axis label
+      xlab = 'Chi-squared statistic', # change x-axis label
+      lwd = 2, #increase line width to 2
+      col = 'steelblue') #change line color to steelblue
+```
+
+Interpretation: The chi-squared distribution is not a perfect representation of the distribution of differences between observed and expected of a chi-squared in the situation where both variables are binary.
+
+
+When k=2, 
+ V = square_root(χ2/(n(k-1))) (from line 601)
+the formula becomes
+ Phi-coefficient = square_root(χ2/(n))
+
+The phi calculation uses the version of chi-squared that is not adjusted by the Yates correction
+
+#####################The odds ratio for effect size with two binary variables###################
+
+* Another effect size useful when both variables are binary is the odds    ratio (OR) (Kim, 2017). 
+* The odds ratio measures the odds of some event or outcome occurring      given a particular exposure compared to the odds of it happening         without that exposure. 
+* In this case, the exposure would be home ownership, and the outcome      would be opinion on ease of voting. 
+* The odds ratio would measure the odds of thinking people should          register to vote given owning a home, compared to the odds of thinking   people should register to vote given not owning a home.
+
+
+The calculation uses the frequencies in the 2 × 2 table where the rows are the exposure and the columns are the outcome.
+
+```{r}
+##
+##              Register to vote  Make easy to vote
+##  Owned            287                375
+##  Rented           112                208
+```
+
+###############################Calculating the OR######################
+
+  OR= (exposed.with.outcome/unexposed.with.outcome)/
+      (exposed.no.outcome/unexposed.no.outcome)
+  
+  OR= (287/112)/(375/208) = 1.42
+
+################################  
+Interpreting the odds ratio:
+################################
+
+* The numerator shows that the odds of an outcome for those who reported   being exposed compared to those who reported not being exposed are       2.56. 
+* The denominator shows that the odds of no outcome for those who          reported being exposed compared to those who reported not being exposed   are 1.80. 
+* Dividing the 2.56 by 1.80, the resulting odds ratio is 1.42 and could    be interpreted in a couple of ways:
+  - Home owners have 1.42 times the odds of thinking people should           register to vote compared to people who do not own homes.
+  - Home owners have 42% higher odds of thinking people should register      to vote compared to people who do not own homes.
+  
+* Odds ratios interpretation depends mostly on whether the OR is above or   below 1. 
+* An odds ratio of 1 would be interpreted as having equal odds. 
+* Odds ratios above or below 1 are interpreted as follows:
+  - OR > 1 indicates higher odds of the outcome for exposed compared to      unexposed
+  - OR < 1 indicates lower odds of the outcome for exposed compared to       unexposed
+  
+HOW SHOULD AN ODDS RATIO OF 0.85 be interpreted?
+* People with the exposure have .85 times the odds of having the outcome   compared to people who were not exposed.
+* People with the exposure have 15% lower odds of having the outcome       compared to people who were not exposed.
+
+ODDS RATIO CALCULATION USING R:
+oddsratio() function has this format: 
+    oddsratio(a, b, c, d), where
+                              a is exposed with outcome,
+                              b is not exposed with outcome,
+                              c is exposed no outcome, and
+                              d is not exposed no outcome.
+
+```{r}
+# open fmsb
+#library(package = "fmsb")
+
+# odds ratio from frequencies
+oddsratio(a = 287, #exposed with outcome
+          b = 112, #is not exposed with outcome
+          c = 375, #is exposed no outcome
+          d = 208  #is not exposed no outcome
+          )
+```
+Interpretation:
+* The results include “sample estimates,” which looks like a confirmation   of the 1.42 odds ratio just as computed (Line 746). 
+* The results also show a table with the frequencies, a p-value, and a     95% confidence interval. 
+* The p-value for the odds ratio has the same broad meaning as the         p-value for the chi-squared, but instead of being based on the area      under the curve for the chi-squared distribution, it is based on the     area under the curve for the log of the odds ratio, which is             approximately normally distributed. 
+* The 95% confidence interval has a similar meaning to the 95% confidence   intervals for means (covered in Chapter 4).
+
+#######################Understanding the options for failed chi-squared assumptions##########################################################
+
+What to do when assumption is violated????????
+
+Violation 1: Violating the assumption that the variables must be nominal or ordinal
+  * Use a different statistical test. Chi-squared is only appropriate for     categorical variables.
+  
+Violation 2: Violating the assumption of expected values of 5 or higher in at least 80% of groups
+  * For very small samples, the approximation is not great, so a             different method of computing the p-value is better. 
+  * The method most commonly used is the Fisher’s exact test. 
+  * The Fisher’s exact test computes a different p-value for the             chi-squared statistic (Kim, 2017). 
+  * In R, the Fisher’s exact test can be conducted with the fisher.test()     function (https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/fisher.test). 
+  * The process of NHST and the interpretation of the results are the        same as for the chi-squared, just with a different method of             computing the p-value to reject or retain the null hypothesis.
+  
+Violation 3: Violating the independent observations assumption
+  * If the data were collected in order to examine nonindependent            observations, such as some characteristic of the same set of people      before and after an intervention, or whether two siblings share some     characteristic or opinion, McNemar’s test is a good alternative to       the chi-squared test, but only when both of the variables are binary,     or have two categories (McCrum-Gardner, 2008). 
+  * McNemar’s test is available in R with the mcnemar.test() function.
+    (https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/mcnemar.test)
+  * If there are three or more groups for one variable and a binary          second variable, Cochran’s Q-test is an option (McCrum-Gardner, 2008)     and is available in R in the nonpar package by D. Lukke Sweet            (https://cran.r-project.org/web/packages/nonpar/index.html). 
+  * If the data were collected in a sloppy way and this resulted in a few     people being surveyed twice, for example, it is probably best to         clean the data as much as possible and stick to using descriptive        statistics and graphs because the data are not independent and there     is not a good way to make them independent.
+
+
+
+
+
+  
+                
+
+
