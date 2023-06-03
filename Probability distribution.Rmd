@@ -1,0 +1,1005 @@
+---
+title: "Probability distribution"
+output: html_notebook
+---
+
+Outcome:
+* Learn two of the most commonly used distributions
+* How they are used to infer information about populations from samples
+
+dbinom() - Binomial probability mass function (Probability function)
+pbinom() - Binomial distribution (Cumulative distribution function)
+pnorm()  - Normal distribution (Cumulative distribution function)
+
+```{r}
+# open tidyverse
+library(tidyverse)
+```
+
+
+#########################################################################
+
+Achievement 1: Defining and using probability distributions to infer from a sample
+Achievement 2: Understanding the characteristics and uses of a binomial distribution of a binary variable
+Achievement 3: Understanding the characteristics and uses of the normal distribution of a continuous variable
+Achievement 4: Computing and interpreting z-scores to compare observations to groups
+Achievement 5: Estimating population means from sample means using the normal distribution
+Achievement 6: Computing and interpreting confidence intervals around means and proportions
+
+#########################################################################
+
+* Prescription drug monitoring programs (PDMPs) were an effective tool in   understanding the opioid crisis and in reducing opioid overdoses and deaths (Haegerich et al., 2014). 
+* As of 2017, just over half of all U.S. states had adopted a PDMP, which can be represented in a probability distribution. 
+* A probability distribution is the set of probabilities that each        possible value (or range of values) of a variable occurs (check       slides).
+
+##########################################################################
+
+#############Understanding the characteristics and uses of a binomial distribution of a binary variable#######################################
+
+* The binomial distribution is a discrete probability distribution used to   understand what may happen when a variable has two possible outcomes, such as “eats brownies” and “does not eat brownies.” 
+* The most common example is flipping a coin, but there are many variables   that have two outcomes: alive or dead, smoker or nonsmoker, voted or did   not vote, depressed or not depressed. 
+* Whether a state did or did not adopt an opioid policy is another example   of a variable with two possible outcomes: policy, no policy. 
+
+
+The binomial distribution is defined by two things:
+
+* n, which is the number of observations (e.g., coin flips, people          surveyed, states selected)
+* p, which is the probability of success (e.g., 50% chance of heads for a   coin flip, 51% chance of a state having a PDMP)
+
+Using distributions to learn about populations from samples:
+* Researchers often work with samples instead of populations.
+* In the case of the state data on opioid policies, all states are          included, so this is the entire population of states. 
+* When it is feasible to measure the entire population, reporting the       percentages is usually sufficient. 
+* However, populations are often expensive and logistically difficult or    impossible to measure, so a subset of a population is measured instead. 
+* This subset is a sample. If, for example, if a PhD student is working   on dissertation and wanted to study how the number of opioid deaths in   a state relates to one or two characteristics of states, he/she might   choose a sample of 20 or 30 states to examine.
+
+Statistical properties of a binomial random variable:
+* If we did not know which states had PDMPs (we just knew it was 51% of   states)(rest 49% did not have PDMPs) and decided our sample of states   needed to include exactly 10 states with PDMPs, we could use the        binomial distribution to decide how many states to include in a sample   in order to have a good chance of picking 10 with PDMPs. 
+* Before we could use the binomial distribution, we would need to ensure   that the PDMP variable had the properties of a binomial random          variable:
+  - The existence of a monitoring program would be determined for each      state.
+  - The only two possible values are “success” for having a PDMP and        “failure” for not having a PDMP.
+  - Each state is independent of the other states.
+  - The probability of having a program is the same for each state.
+  
+Note:  
+*  The third and fourth assumptions of states being independent of other states and having the same probability of having a program might not hold as even though the state lawmakers are independent of each other, but neighboring states will often be more similar to each other than they are to states in other parts of the country. 
+*  The influence of geography is complex and should be seriously considered before publishing any research with these data but it is ok from a course perspective to explore about statistical concepts. 
+  -> For this chapter, consider the states and counties in the data as independent of each other. 
+  
+Expected value:
+* The expected value of a binomial random variable is np, where n is the   sample size and p is the probability of a success. 
+* For example, if the sample size is 20 and the probability of success    (having a PDMP) is 51%, which is formatted as a proportion rather than   a  percentage for the purposes of this calculation, the expected value   of the binomial random variable after taking a sample of 20 states      would be 20 × .51 or 10.2. 
+
+What should we infer? 
+  This means that a sample of 20 states is likely to have 10.2 states with PDMPs.  
+
+
+As p is probability and not a certainty, more useful to use probability mass function (PMF) for the binomial distribution to compute the  probability that any given sample of 20 states would have exactly 10 states with PDMPs.
+
+What is PMF?
+* A probability mass function computes the probability that an exact      number of successes happens for a discrete random variable, given n     and p.
+* In this context, the probability mass function will give us the         probability of getting 10 states with a PDMP if they selected 20        states   at random from the population of states where the likelihood   of any one state having a PDMP was 51%. 
+
+Suppose,
+  x represents the specific number of successes of interest, 
+  n is the sample size, 
+  and p is the probability of success.
+  
+f ( x , n , p ) = ( n x ) p x ( 1 − p ) ( n − x ) (Check slide 27 for formula)
+
+In our context, 
+  x= 10
+  n= 20
+  p=0.51
+
+f ( 10 , 20 , . 51 ) = ( 20 10 ) . 51 10 ( 1 − . 51 ) ( 20 − 10 ) = . 175 (Check slide 27 for formula)
+
+What should we infer about the value 0.175?
+* There is a 17.5% probability of choosing exactly 10 states with PDMPs if   we choose 20 states at random from the population of states where 51% of states have a PDMP. 
+
+Corresponding R Code:
+* in-built function in base R ->  dbinom()  
+
+```{r}
+# where successes = 10, n = 20, prob = .51
+dbinom(x = 10, size = 20, prob = .51)
+```
+
+Using the binomial distribution
+
+* The binomial distribution can also be displayed graphically and used to   understand the probability of getting a specific number of successes or   a range of successes (e.g., 10 or more successes).
+
+```{r}
+# 5 successes from a sample of 20 with 51% probability of success
+dbinom(x = 5, size = 20, prob = .51)
+```
+What should we infer from value 0.01205691?
+  There was a 1.21% chance of choosing 20 states at random from a          population where 51% have PDMPs and the sample has exactly 5 with a      PDMP.
+
+Next example:
+
+If 75% of states had programs, what would the probability be that exactly 5 out of 20 selected at random would have a PDMP?  
+  
+dbinom() to check how low the probability of five successes (states with PDMPs) actually was.
+
+```{r}
+# 5 successes from 20 selections with 75% probability of success
+dbinom(x = 5, size = 20, prob = .75)
+```
+What should we infer from value 3.426496e-06?
+  When 75% of states have PDMPs, we determine that there is a 0.00034%      chance (0.0000034 × 100) of choosing exactly 5 states with PDMPs out of   20 selected.
+  
+
+CUMULATIVE DISTRIBUTION FUNCTION (CDF):
+* The cumulative distribution function for the binomial distribution can   determine the probability of getting some range of values, which is      often more useful than finding the probability of one specific number    of successes.
+
+For example, what is the probability of selecting 20 states and getting five or fewer states with PDMPs? Likewise, what is the probability of getting 10 or more states with PDMPs in a sample of 20?
+
+CDF computes the probability of getting x or fewer successes:
+
+  Suppose 
+  x is the number of successes, 
+  xfloor is the largest integer less than or equal to x, 
+  n is the sample size, 
+  and p is the probability of success.
+
+check slide for equation
+
+R command:
+* pbinom() 
+
+```{r}
+# 5 or fewer successes from 20 selections
+# with 51% probability of success
+pbinom(q = 5, size = 20, prob = .51)
+## [1] 0.01664024
+```
+pbinom() to compute right side of the graph -> specifying lower.tail = FALSE. 
+The lower.tail = option has the default value of TRUE, so it did not need to be included when estimating the lower tail, but it needs to be added when it is the upper tail on the right being estimated.
+
+```{r}
+# 10 or more successes from 20 selections
+# with 51% probability of success
+# get right side of graph
+pbinom(q = 10, size = 20, prob = .51, lower.tail = FALSE)
+```
+NOTE:
+* pbinom() calculation with the default of lower.tail = TRUE is for 10 or   fewer successes; 
+* maybe the lower.tail = FALSE is computing higher than 10 rather than     10 or higher, so it is missing some of the graph in the middle. 
+
+```{r}
+# 10 or more successes from 20 selections
+# with 51% probability of success
+pbinom(q = 9, size = 20, prob = .51, lower.tail = FALSE)
+```
+Interpretation: 62.29% probability of selecting 10 or more states with PDMPs in a sample of 20 from a population of states where 51% have PDMPs.
+
+```{r}
+# bring in the opioid policy data and check it out
+opioid.policy.kff <- read.csv(file = "pdmp_2017_kff_ch4.csv")
+```
+
+```{r}
+head(opioid.policy.kff)
+```
+
+```{r}
+# check the data frame
+summary(object = opioid.policy.kff)
+```
+
+```{r}
+#19 states did not have PDMPs/ 32 states have PDMPs 
+View(opioid.policy.kff)
+```
+
+First step: Take a sample of 25 states and see if the sample of 25 states has 15 or more states with PDMPs
+
+For solving first step: We should see what the binomial distribution         tells us about the probability of getting a sample with 15 or more       PDMPs out of 25 states. 
+    For this, they we need the percentage of states that currently have      PDMPs (the success rate). 
+    32/51, or 63% of states, had PDMPs as of 2017 (check line 186)
+
+```{r}
+# 15 or more successes from 25 selections
+# with 63% probability of success
+# pbinom computes left tail, so use lower.tail = FALSE
+pbinom(q = 14, size = 25, prob = .63, lower.tail = FALSE)
+## [1] 0.7018992
+```
+What should we interpret about the value 0.7018992?
+  The probability of selecting a sample of 25 states where 15 or more      states have PDMPs is 70.19%.
+
+########################################################################
+
+set.seed() function -> useful when conducting random sampling since it                          will result in the same sample to be taken each                          time the code is run, which makes sampling more                          reproducible
+
+
+In statistics, some procedures are conducted by first selecting a subset of values (sample) at random from a large group of values (population).
+
+* When values are randomly selected, there is usually no way to find the   same set of values again. 
+* However, the set.seed() function in R allows the analyst to set a        starting point for the random selection process. 
+* The selection process can then be reproduced by setting the same seed. * When a random selection process starts in the same place, the same       random sample of values is selected.
+
+
+#########Example to see what happens when no seed value is set###########
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# sample 25 states at random and get some frequencies
+opioid.policy.kff %>% select(Required.Use.of.Prescription.Drug.Monitoring.Programs) %>%
+  mutate(Required.Use.of.Prescription.Drug.Monitoring.Programs = 
+           as.factor(Required.Use.of.Prescription.Drug.Monitoring.Programs))%>% 
+sample_n(size = 25) %>%
+summary()
+```
+
+```{r}
+# sample 25 states at random and get some frequencies
+opioid.policy.kff %>% select(Required.Use.of.Prescription.Drug.Monitoring.Programs) %>%
+  mutate(Required.Use.of.Prescription.Drug.Monitoring.Programs = 
+           as.factor(Required.Use.of.Prescription.Drug.Monitoring.Programs))%>% 
+sample_n(size = 25) %>%
+summary()
+```
+
+Interpretation: The frequencies for the two samples are different because they include different states. 
+
+* Next, choosing seed value
+
+set.seed(seed=35)
+
+```{r}
+# set seed value
+set.seed(seed = 35)
+# sample 25 states at random
+opioid.policy.kff %>% select(Required.Use.of.Prescription.Drug.Monitoring.Programs) %>%
+  mutate(Required.Use.of.Prescription.Drug.Monitoring.Programs = 
+           as.factor(Required.Use.of.Prescription.Drug.Monitoring.Programs))%>% 
+sample_n(size = 25) %>%
+summary()
+```
+
+```{r}
+# set seed value
+set.seed(seed = 35)
+# sample 25 states at random
+opioid.policy.kff %>% select(Required.Use.of.Prescription.Drug.Monitoring.Programs) %>%
+  mutate(Required.Use.of.Prescription.Drug.Monitoring.Programs = 
+           as.factor(Required.Use.of.Prescription.Drug.Monitoring.Programs))%>% 
+sample_n(size = 25) %>%
+summary()
+```
+
+Interpretation: The frequencies are the same because the same states are in each sample.
+
+The random number generator (RNG) that R used for sampling was changed in R version 3.6.0, which was released in early 2019 and is often referred to as R-3.6.0. Any analyses that were done using set.seed() before this version would not be reproducible with set.seed() and the same seed number. -> RNGkind(sample.kind = "Rounding") function could be used to reproduce the results 
+
+ Task: To take the sample and to get the percentage of states in the sample with a PDMP.
+ 
+```{r}
+# set a starting value for sampling
+
+set.seed(seed = 3)
+
+# sample 25 states and check file
+opioid.policy.kff %>% select(Required.Use.of.Prescription.Drug.Monitoring.Programs) %>%
+  mutate(Required.Use.of.Prescription.Drug.Monitoring.Programs = 
+           as.factor(Required.Use.of.Prescription.Drug.Monitoring.Programs))%>% 
+sample_n(size = 25) %>%
+summary()
+```
+ 
+ Interpretation:
+  The output shows No :8 and Yes:17, so the sample has 17 states with PDMPs. 
+
+```{r}
+pbinom(q = 14, size = 25, prob = .63, lower.tail = FALSE)
+```
+Interpretation: There was a 70.19% chance they would see 15 or more states with PDMPs.
+
+```{r}
+# set a starting value for sampling
+set.seed(seed = 10)
+
+# sample 25 states and check file
+opioid.policy.kff %>% select(Required.Use.of.Prescription.Drug.Monitoring.Programs) %>%
+  mutate(Required.Use.of.Prescription.Drug.Monitoring.Programs = 
+           as.factor(Required.Use.of.Prescription.Drug.Monitoring.Programs))%>% 
+sample_n(size = 25) %>%
+summary()
+```
+
+Interpretation: This sample has 15 states with PDMPs.
+
+```{r}
+# set a starting value for sampling
+set.seed(seed = 999)
+
+# sample 25 states and check file
+opioid.policy.kff %>% select(Required.Use.of.Prescription.Drug.Monitoring.Programs) %>%
+  mutate(Required.Use.of.Prescription.Drug.Monitoring.Programs = 
+           as.factor(Required.Use.of.Prescription.Drug.Monitoring.Programs))%>% 
+sample_n(size = 25) %>%
+summary()
+```
+
+Interpretation:
+ This one has 14 states with PDMPs.
+
+
+Sample 1:
+Required.Use.of.Prescription.Drug.Monitoring.Programs
+ No : 8                                               
+ Yes:17  
+
+Sample 2:
+Required.Use.of.Prescription.Drug.Monitoring.Programs
+ No :10                                               
+ Yes:15
+
+Sample 3:
+Required.Use.of.Prescription.Drug.Monitoring.Programs
+ No :11                                               
+ Yes:14  
+
+What do we interpret overall from output of setting different seed values apart from reproducing the same sample?
+    Out of three samples of 25 states, two samples had 15 or more states     with PDMPs and one sample had fewer than 15 states with PDMPs. This was consistent with the binomial distribution prediction that 70.19% (line 307) of the time a sample of size 25 will have at least 15 states with PDMPs. 
+
+#######################Understanding the characteristics and uses of the normal distribution of a continuous variable############################
+
+* Many of the variables of interest in social science are not binary, so   the binomial distribution and its related functions would not be all     that useful. 
+* Instead, the probability distribution for a continuous variable is the   normal distribution. 
+* Just as the shape of the binomial distribution is determined by n and    p, the shape of the normal distribution for a variable in a sample is    determined by µ and σ, the population mean and standard deviation,       which are estimated by the sample mean and standard deviation, m and s.
+
+* The normal distribution is used to find the likelihood of a certain      value or range of values for a continuous variable.
+* Like the probabilities from the binomial distribution that are shown  in a probability mass function, the normal distribution has a probability density function graph.
+
+```{r}
+# Create a sequence of numbers between -150 and 150 incrementing by 0.2.
+Miles_to_the_nearest_facility <- seq(-150, 150, by = 0.2)
+# Choose the mean as 2.5 and standard deviation as 0.5.
+Probability_density <- dnorm(Miles_to_the_nearest_facility, mean = 24.04, sd = 22.66)
+
+plot(Miles_to_the_nearest_facility,Probability_density)
+
+```
+Interpretation:
+  This graph extended into negative numbers, which did not make sense for   a measure of distance. 
+  There is no way to walk or drive –2 miles. 
+  This variable might be skewed to the right rather than normally          distributed, given the large standard deviation relative to its mean
+  Transform the variable so that to continue to discuss about the normal   distribution. 
+  For variables that are right skewed, a few transformations that could    work to make the variable more normally distributed are square root,     cube root, reciprocal, and log (Manikandan, 2010).
+  
+```{r}
+# distance to substance abuse facility with medication-assisted treatment
+dist.mat <- read.csv(file = "opioid_dist_to_facility_2017_ch4.csv")
+```
+
+```{r}
+dist.mat$STATE <- as.factor(dist.mat$STATE)
+```
+
+```{r}
+dist.mat$STATEABBREVIATION <- as.factor(dist.mat$STATEABBREVIATION)
+```
+
+```{r}
+dist.mat$COUNTY <- as.factor(dist.mat$COUNTY)
+```
+
+
+```{r}
+# review the data
+summary(object = dist.mat)
+```
+
+SUMMARY OF THE VARIABLES IN THE DATA FRAME:
+
+STATEFP: Unique Federal Information Processing Standards (FIPS) code representing each state
+COUNTYFP: Unique FIPS code representing each county
+YEAR: Year data were collected
+INDICATOR: Label for value variable
+VALUE: Distance in miles to nearest substance abuse facility with medication-assisted treatment (MAT)
+STATE: Name of state
+STATEABBREVIATION: Abbreviation for state
+COUNTY: Name of county
+
+* The data were county-level data
+* The distances contained in the data frame were the distances from the middle of each county (and not with states or people) to the nearest treatment facility with medication-assisted therapy (MAT) for substance abuse. 
+* Observations were counties
+
+* Graph the distance variable (VALUE) to check if skew was a problem
+
+```{r}
+# open tidyverse
+#library(package = "tidyverse")
+# graph the distance variable (Figure 4.13)
+dist.mat %>%
+ggplot(aes(x = VALUE)) +
+geom_histogram(fill = "#7463AC", color = "white") +
+theme_minimal() +
+labs(x = "Miles to nearest substance abuse facility",
+y = "Number of counties")
+```
+
+```{r}
+# transforming the variable
+dist.mat.cleaned <- dist.mat %>%
+mutate(miles.cube.root = VALUE^(1/3)) %>%
+mutate(miles.log = log(x = VALUE)) %>%
+mutate(miles.inverse = 1/VALUE) %>%
+mutate(miles.sqrt = sqrt(x = VALUE))
+```
+
+```{r}
+# graph the transformations
+cuberoot <- dist.mat.cleaned %>%
+ggplot(aes(x = miles.cube.root)) +
+geom_histogram(fill = "#7463AC", color = "white") +
+theme_minimal() +
+labs(x = "Cube root of miles to nearest facility", y = "Number of counties")
+```
+
+```{r}
+# graph the transformations
+logged <- dist.mat.cleaned %>%
+ggplot(aes(x = miles.log)) +
+geom_histogram(fill = "#7463AC", color = "white") +
+theme_minimal() +
+labs(x = "Log of miles to nearest facility", y = "")
+```
+
+```{r}
+# graph the transformations
+inversed <- dist.mat.cleaned %>%
+ggplot(aes(x = miles.inverse)) +
+geom_histogram(fill = "#7463AC", color = "white") +
+theme_minimal() + xlim(0, 1) +
+labs(x = "Inverse of miles to nearest facility", y = "Number of counties")
+```
+
+```{r}
+# graph the transformations
+squareroot <- dist.mat.cleaned %>%
+ggplot(aes(x = miles.sqrt)) +
+geom_histogram(fill = "#7463AC", color = "white") +
+theme_minimal() +
+labs(x = "Square root of miles to nearest facility", y = "")
+```
+
+```{r}
+gridExtra::grid.arrange(cuberoot, logged, inversed, squareroot)
+```
+
+Interpretation: 
+  * The cube root was the best of the four transformations for making the     distribution appear normal, or normalizing the variable. 
+  * The inverse did not work at all and made the variable appear even        more skewed than it originally was. 
+  * The log and square root both were fine, but the cube root was closest     to normal and chose this transformation. 
+  
+  
+Get the mean and standard deviation of the cube root of distance so we could get back to plotting the probability distribution.
+
+```{r}
+# mean and standard deviation for cube root of miles
+dist.mat.cleaned %>%
+summarize(mean.tran.dist = mean(x = miles.cube.root),
+      sd.tran.dist = sd(x = miles.cube.root))
+```
+
+```{r}
+# Create a sequence of numbers between -1 and 7 incrementing by 0.2.
+Cube_root_of_miles_to_nearest_facility_with_MAT <- seq(-1, 7, by = 0.1)
+# Choose the mean as 2.5 and standard deviation as 0.5.
+Probability_density <- dnorm(Cube_root_of_miles_to_nearest_facility_with_MAT , mean = 2.66, sd = 0.79)
+
+plot(Cube_root_of_miles_to_nearest_facility_with_MAT ,Probability_density)
+```
+
+Interpretation: 
+* Area under the curve represents 100% of the observations
+* Using this probability density function graph to determine               probabilities is a little different from using the probability mass      function graph from the binomial distribution in the previous examples. 
+* With continuous variables, the probability of any one specific value is   going to be extremely low, often near zero. Instead, probabilities are   usually computed for a range of values.
+
+
+R Command:
+* pnorm() function is useful for finding the actual probability value for   the shaded area under the curve. 
+* In this case, pnorm() could be used to   determine the proportion of     counties that are 4 cube root miles or more to the nearest facility      with MAT. 
+* The pnorm() function takes three arguments: the value of interest (q),   the mean (m), and the standard deviation (s).
+
+```{r}
+# shaded area under normal curve > 4
+# when curve has mean of 2.66 and sd of .79
+pnorm(q = 4, mean = 2.66, sd = .79)
+## [1] 0.9550762
+```
+
+Interpretation: 95% doesn't seem right
+
+
+* The pnorm() function finds the area under the curve starting on the      left up to, but not including, the q value entered, which in this case   is 4.
+* To get the area from 4 to ∞ under the right tail of the distribution,    add the lower.tail = FALSE option.
+(Hint: > like a value to infinity then lower.tail=FALSE 
+       < like a value to -infinity then lower.tail=TRUE)
+
+
+```{r}
+#shaded area under normal curve
+# when curve has mean of 2.66 and sd of .79
+pnorm(q = 4, mean = 2.66, sd = .79, lower.tail = FALSE)
+## [1] 0.04492377
+```
+
+Interpretation:
+* It looked like 4.49% of observations were in the shaded part of this     distribution and therefore had a value for the distance variable of 4    or greater. 
+* Reversing the transformation, this indicated that residents of 4.49% of   counties have to travel 4^3 or 64 miles or more to get to the nearest     substance abuse facility providing medication-assisted treatment. 
+* This seemed really far to travel to get treatment, especially   for      people struggling with an opioid addiction or trying to help their       family members and friends. 
+* 64 miles of travel could be an insurmoutable challenge for people        trying to get care.
+
+
+##############################Computing and interpreting z-scores to compare observations to groups#########################################
+
+Regardless of what the mean and standard deviation are, a normally distributed variable has approximately
+  --68% of values within one standard deviation of the mean
+  --95% of values within two standard deviations of the mean
+  --99.7% of values within three standard deviations of the mean
+
+These characteristics of the normal distribution can be used to describe and compare how far individual observations are from a mean value. 
+
+Z-score
+* Z-scores allow description and comparison of where an observation falls   compared to the other observations for a normally distributed variable.
+* Z-score is the number of standard deviations an observation is away      from the mean.
+* Z-score (positive for value greater than mean and negative for value     less than mean)
+
+For example,to calculate z for a county with residents who have to travel 50 miles to the nearest facility. In the transformed miles variable, this would be the cube root of 50, or a value of 3.68 (line 495). 
+                      z= (3.68-2.66)/0.79=1.29
+                      
+Interpretation: z = 1.29 indicates that the transformed distance to a facility with MAT for this example county was 1.29 standard deviations above the mean transformed distance from a county to a facility with MAT. This county was farther away from MAT than the mean distance for a county.        
+
+Another example, a county with a 10-mile distance to a facility with MAT, which is a value of 2.15 in the transformed distance variable, was .65 standard deviations below the mean transformed distance (z = –.65).
+                    z=(2.15-2.66)/0.79=-0.65
+                    
+                    
+Overall interpretation:
+* The z-score was a positive value for a county with a distance that was   higher than the mean and a negative value for a county with a distance   that was lower than the mean. 
+* The z-score not only indicated how many standard deviations away from    the mean an observation was, but whether the observed value was above    or below the mean
+
+#############################Estimating population means from sample means using the normal distribution#####################################
+
+Samples and Population
+* The characteristics of the normal curve are exceptionally useful in      better understanding the characteristics of a population when it is      impossible to measure the entire population. 
+* For example, there is no real way to measure the height or weight or    income of every single person in the United States. 
+* Instead, researchers often use a representative sample from the          population they are interested in and use properties of the normal       distribution to understand what is likely happening in the whole         population.
+* A representative sample is a sample taken carefully so that it does a    good job of representing the characteristics of the population. 
+* For example, if a sample of U.S. citizens were taken and the sample was   75% female, this would not be representative of the distribution of sex   in the population. 
+
+Using the normal distribution and samples to understand populations
+* To see how the normal distribution can use sample data to understand     the population, we can use the distance to a treatment facility          variable. 
+* We do not have to transform the variable for this demonstration because   the theory they are using works for continuous variables whether they    are normally distributed or not.
+
+```{r}
+# rename variable
+dist.mat.cleaned <- dist.mat %>%
+rename('distance' = VALUE)
+```
+
+```{r}
+View(dist.mat.cleaned)
+```
+
+```{r}
+# get mean and sd from cleaned data
+dist.mat.cleaned %>%
+summarize(mean.dist = mean(x = distance),
+sd.dist = sd(x = distance),
+n = n())
+```
+Interpretation: 
+* The mean distance to the nearest substance abuse facility that provides   at least one type of Medication Assisted Treatment (MAT) is 24.04 miles away, with a standard deviation   of 22.66 miles.
+* There are 3,214 counties in the data set representing all (or almost     all) of the counties in the United States; thus, this is not a sample    of counties, it is the population of counties.
+
+Examining a sample from a population
+* To take a sample of 500 counties, using set.seed() and finding the       mean of the distances in the sample with summarize(). 
+* Sampling with replacement since each observation having the same exact   chance of selection is part of the definition of the Central Limit       Theorem
+
+```{r}
+# set a starting value for sampling
+set.seed(seed = 1945)
+# sample 500 counties at random
+counties.500 <- dist.mat.cleaned %>%
+sample_n(size = 500, replace = TRUE)
+```
+
+```{r}
+# compute the mean distance in the sample
+counties.500 %>%
+summarize(mean.s1 = mean(x = distance))
+```
+Interpretation: The result is 24.40 miles, which is close to the population mean of 24.04 miles (check the result below line 589), but not exactly the same. 
+
+```{r}
+# set a different starting value for sampling
+set.seed(seed = 48)
+# sample 500 counties at random
+counties.500.2 <- dist.mat.cleaned %>%
+sample_n(size = 500, replace = TRUE)
+```
+
+```{r}
+# compute the mean distance in the sample
+counties.500.2 %>%
+summarize(mean.s2 = mean(x = distance))
+```
+This time the mean distance was 23.50 miles (rounded off), which is lower than the first sample mean of 24.40 miles and a little under the population value of 24.04 miles (check line 589).
+
+Examining a sample of samples from a population
+* If we take 20 samples of counties where each sample had 500 counties in   it. 
+* Use the replicate() function with the argument n = 20 to repeat the      sampling 20 times. 
+* Use bind_rows() to combine the 20 samples into a data frame.
+* After collecting and combining all the samples, use group_by() and       summarize() to get the mean distance for each sample.
+
+```{r}
+# get 20 samples
+# each sample has 500 counties
+# put samples in a data frame with each sample having
+# a unique id called sample_num
+set.seed(seed = 111)
+samples.20 <- bind_rows(replicate(n = 20, dist.mat.cleaned %>%
+    sample_n(size = 500, replace = TRUE),
+    simplify = FALSE), .id = "sample_num")
+```
+
+```{r}
+# find the mean for each sample
+sample.20.means <- samples.20 %>%
+group_by(sample_num) %>%
+summarize(mean.distance = mean(x = distance, na.rm = TRUE))
+sample.20.means
+```
+* A tibble is a type of data frame in R that has better options for        printing, especially when data files are very large. 
+* Next, get the mean of all the sample means.
+
+```{r}
+# find the mean of the 20 sample means
+sample.20.means %>%
+summarize(mean.20.means = mean(x = mean.distance))
+```
+Interpretation: 
+The mean of the 20 sample means is 23.7, which is closer to the population mean of 24.04 than either of the first two individual samples were. 
+
+Changing the value of n=20 to n=100
+
+```{r}
+# get 100 samples
+set.seed(seed = 143)
+samples.100 <- bind_rows(replicate(n = 100, dist.mat.cleaned %>%
+sample_n(size = 500, replace = TRUE),
+simplify = FALSE), .id = "sample_num")
+
+# find the mean for each sample
+sample.100.means <- samples.100 %>%
+group_by(sample_num) %>%
+summarize(mean.distance = mean(x = distance))
+
+# find the mean of the 100 sample means
+sample.100.means %>%
+summarize(mean.100.means = mean(mean.distance))
+```
+Interpretation:
+The mean of 100 sample means is 23.95, which is even closer to the true population mean of 24.04 than the individual samples or the mean of the 20 samples
+
+Note: We could get closer to the population mean if we used more samples       and larger sample sizes.
+
+Another example, changing n=100 to n=1000
+
+```{r}
+# get 1000 samples
+set.seed(seed = 159)
+samples.1000 <- bind_rows(replicate(n = 1000, dist.mat.cleaned %>%
+sample_n(size = 500, replace = TRUE),
+simplify = FALSE), .id = "sample_num")
+# find the mean for each sample
+sample.1000.means <- samples.1000 %>%
+  group_by(sample_num) %>%
+summarize(mean.distance = mean(x = distance))
+# find the mean of the sample means
+sample.1000.means %>%
+summarize(mean.1000.means = mean(x = mean.distance))
+```
+Interpretation: The mean of the sample means of 24.0 is very close to the population mean of 24.04.
+
+```{r}
+# histogram of the 1000 means 
+sample.1000.means %>%
+ggplot(aes(x = mean.distance)) +
+geom_histogram(fill = "#7463AC", color = "white") +
+labs(x = "Mean distance to facility with MAT",
+ y = "Number of samples") +
+theme_minimal()
+```
+Interpretation:
+* The graph of the sample means looks a lot like a normal distribution. 
+* Taking a lot of large samples and graphing their means results in a      sampling distribution that looks like a normal distribution, and, more   importantly, the mean of the sample means is nearly the same as the      population mean
+* A sampling distribution is the distribution of summary statistics from   repeated samples taken from a population.
+
+This phenomena is called the Central Limit Theorem and holds true for continuous variables that both are and are not normally distributed.
+
+The Central Limit Theorem is one of the most important ideas for inferential statistics, or statistical approaches that infer population characteristics based on sample data.
+
+Another characteristic of the Central Limit Theorem is that the standard deviation of the sample means can be estimated using the population standard deviation and the size of the samples that make up the distribution.
+
+the sd() function will not work to compute σ because the underlying calculations for sd() include n – 1 in the denominator to account for data being a sample rather than a population. 
+(Check this video:
+https://www.khanacademy.org/math/ap-statistics/summarizing-quantitative-data-ap/more-standard-deviation/v/review-and-intuition-why-we-divide-by-n-1-for-the-unbiased-sample-variance)
+
+In R:
+We could use var()*((n-1)/n) to get the population variance of σ2 and then use sqrt() from there to get population standard deviation (σ). 
+This could then be used to get the estimate of the sampling standard deviation
+
+```{r}
+# compute estimated standard dev of sampling dist
+dist.mat.cleaned %>%
+drop_na(distance) %>%
+summarize(n = n(),
+      pop.var = var(x = distance)*((n - 1)/n),
+      pop.s = sqrt(x = pop.var),
+      s.samp.dist.est = pop.s/sqrt(x = 500))
+```
+```{r}
+# computing the samp dist standard devation
+# directly from the 1000 sample means
+sd(x = sample.1000.means$mean.distance, na.rm = T)
+```
+The results were similar (1.01 and 1.05), but not identical.
+
+The standard error
+* Since the mean of the sample means in the sampling distribution is very   close to the population mean, the standard deviation of the sampling     distribution shows how much we expect sample means to vary from the      population mean. 
+* Specifically, given that the distribution of sample means is relatively   normally distributed, 68% of sample means will be within one standard    deviation of the mean of the sampling distribution, and 95% of sample    means will be within two standard deviations of the sampling             distribution mean. 
+* Since the sampling distribution mean is a good estimate of the           population mean, it follows that most of the sample means are within     one or two standard deviations of the population mean.
+* Since it is unusual to have the entire population for computing the      population standard deviation, and it is also unusual to have a large    number of samples from one population, a close approximation to this     value is called the standard error of the mean (often referred to        simply as the “standard error”). 
+* The standard error is computed by dividing the standard deviation of a   variable by the square root of the sample size
+
+```{r}
+# mean, sd, se for first sample of 500 counties
+counties.500 %>%
+summarize(mean.dist = mean(x = distance),
+    sd.dist = sd(x = distance),
+ se.dist = sd(x = distance)/sqrt(x = length(x = distance)))
+```
+
+```{r}
+# mean, sd, se for second sample
+counties.500.2 %>%
+summarize(mean.dist = mean(x = distance),
+ sd.dist = sd(x = distance),
+ se.dist = sd(x = distance)/sqrt(x = length(x = distance)))
+```
+Interpretation:
+*   Both of the standard error (se) values are close to the sampling         distribution standard deviation of 1.05, but they are not exactly the     same. 
+*   The first sample standard error of 1.06 was a little above and the       second sample standard error of .0.893 was a little below.
+                    
+
+Summarize:
+* The standard deviation of the sampling distribution is 1.05.
+* The standard error from the first sample is 1.06.
+* The standard error from the second sample is 0.90.
+
+Note:
+* Most of the time, researchers have a single sample and so the only       feasible way to determine the standard deviation of the sampling         distribution is by computing the standard error of the single sample. 
+* This value tends to be a good estimate of the standard deviation of      sample means. 
+
+If
+- about 68% of sample means are within one standard deviation of the sampling distribution mean (i.e., mean-of-sample-means),
+- about 95% of sample means are within two standard deviations of the sampling distribution mean (i.e., mean-of-sample-means),
+- the mean of a sampling distribution tends to be close to the population mean, and
+- the sample standard error is a good estimate of the sampling distribution standard deviation,
+
+then the mean of a variable from any given sample (given good data collection practices) is likely to be within two standard errors of the population mean for that variable. -> This is one of the foundational ideas of inferential statistics.
+
+Difference between standard deviation and standard error:
+* The standard deviation is a measure of the variability in the sample,    while the standard error is an estimate of how closely the sample        represents the population.
+
+#############################Computing and interpreting confidence intervals around means and proportions############################
+
+* Ranges around the sample mean where the population mean might be shows the uncertainty of computing a mean from a sample - confidence intervals (or CIs)
+
+Note:
+* Most of the time, social scientists report 95% intervals or 95%          confidence intervals, which show the range where the population value    would likely be 95 times if the study were conducted 100 times.       
+* Sometimes, smaller or larger intervals are reported, like a 68%          confidence interval (68% CI) or a 99% confidence interval (99% CI), but   usually it’s a 95% confidence interval.
+
+What is 95% confidence interval?
+* The 95% of observations being within (z-score) 1.96 standard deviations of the     mean leaves 5% of observations in the tails of the distribution,         outside the confidence interval
+* The standard error of a sample is a good estimate of the standard        deviation of the sampling distribution, which is normally distributed.
+* The mean of the sampling distribution is a good estimate of the          population mean.
+* So, most sample means will be within two standard errors of the          population mean.
+
+########Computing and interpreting a 95% confidence interval for a mean#####
+
+```{r}
+# add CI to summary statistics (refer to line 613)
+summ.500.counties <- counties.500 %>%
+summarize(mean.s1 = mean(x = distance),
+       sd.s1 = sd(x = distance),
+     se.s1 = sd(x = distance)/sqrt(x = length(x = distance)),
+     lower.ci.s1 = mean.s1 - 1.96 * se.s1,
+     upper.ci.s1 = mean.s1 + 1.96 * se.s1)
+
+summ.500.counties
+```
+Interpretation: The 95% confidence interval for the mean distance from the sample of 500 counties was 22.32–26.49.
+
+Full Interpretation: The mean distance in miles to the nearest substance abuse treatment facility with MAT in a sample of 500 counties is 24.40; the true or population mean distance in miles to a facility likely lies between 22.32 and 26.49 (m = 24.40; 95% CI = 22.32–26.49).
+
+
+```{r}
+# add CI to summary statistics other sample (refer to line 628)
+counties.500.2 %>%
+summarize(mean = mean(x = distance),
+ sd = sd(x = distance),
+ se = sd(x = distance)/sqrt(x = length(x = distance)),
+ lower.ci = mean - 1.96 * se,
+ upper.ci = mean + 1.96 * se)
+```
+Interpretation:
+This sample mean is a smaller value than the first sample mean.
+
+
+######## The confidence intervals when they took 20, 100, and 1,000
+samples##############################################################
+
+```{r}
+#refer to line 646
+# add CI to summary statistics other sample
+samp.20.stats <- samples.20 %>%
+  group_by(sample_num) %>%
+  summarize(means = mean(x = distance),
+            sd = sd(x = distance),
+            se = sd(x = distance)/sqrt(x = length(x = distance)),
+            lower.ci = means - 1.96 * se,
+            upper.ci = means + 1.96 * se)
+```
+
+```{r}
+samp.20.stats
+```
+
+Population mean: 24.04 (refer to line 596)
+
+Looking at the lower.ci and upper.ci, which are the lower and upper bounds of the 95% confidence interval for each sample mean, we can see that all except one of them contained the population mean of 24.04 miles.
+
+* A graph would be easier to examine 
+* Created a graph showing the population mean of 24.04 miles and the       means and 95% confidence intervals for the 20 samples
+
+```{r}
+# graph means and CI for 20 samples
+samp.20.stats %>%
+ggplot(aes(y = means, x = sample_num)) +
+    geom_errorbar(aes(ymin = lower.ci,
+    ymax = upper.ci,
+    linetype = "95% CI of\nsample mean"), color = "#7463AC") +
+    geom_point(stat = "identity", aes(color = "Sample mean")) +
+    geom_hline(aes(yintercept = 24.04, alpha = "Population mean"),
+    color = "deeppink") +
+    labs(y = "Mean distance to treatment facility (95% CI)",
+    x = "Sample") +
+    scale_color_manual(values = "#7463AC", name = "") +
+    scale_linetype_manual(values = c(1, 1), name = "") +
+    scale_alpha_manual(values = 1, name = "") +
+    theme_minimal()
+```
+Interpretation:
+* The 95% confidence intervals for 19 of the 20 samples contained the      population mean and wondered about the 100 samples
+
+
+Another example:
+* To remove the text from the x-axis with one more layer in her graph code for readability - theme(axis.text.x = element_blank())
+
+```{r}
+# get sample statistics
+samp.100.stats <- samples.100 %>%
+      group_by(sample_num) %>%
+      summarize(means = mean(x = distance),
+      sd = sd(x = distance),
+      se = sd(x = distance)/sqrt(x = length(x = distance)),
+      lower.ci = means - 1.96*se,
+      upper.ci = means + 1.96*se)
+```
+
+```{r}
+# graph means and CI for 100 samples 
+samp.100.stats %>%
+ggplot(aes(y = means, x = sample_num)) +
+geom_errorbar(aes(ymin = lower.ci,
+              ymax = upper.ci,
+          linetype = "95% CI of\nsample mean"), color = "#7463AC") +
+          geom_point(stat = "identity", aes(color = "Sample mean")) +
+          geom_hline(aes(yintercept = 24.04, alpha = "Population mean"),
+          color = "deeppink") +
+          labs(y = "Mean distance to treatment facility (95% CI)",
+          x = "Sample") +
+          scale_color_manual(values = "#7463AC", name = "") +
+          scale_linetype_manual(values = c(1, 1), name = "") +
+          scale_alpha_manual(values = 1, name = "") +
+          theme_minimal() +
+          theme(axis.text.x = element_blank())
+```
+
+* Add to the summary statistics in order to highlight any confidence intervals that ended above or below the population mean. 
+
+```{r}
+# get sample statistics
+samp.100.stats <- samples.100 %>%
+                  group_by(sample_num) %>%
+                  summarize(means = mean(x = distance),
+                  sd = sd(x = distance),
+                  se = sd(x = distance)/sqrt(x = length(x = distance)),
+                  lower.ci = means - 1.96*se,
+                  upper.ci = means + 1.96*se,
+                  differs = lower.ci > 24.04 | upper.ci < 24.04)
+```
+
+```{r}
+# graph means and CI for 100 samples 
+samp.100.stats %>%
+    ggplot(aes(y = means, x = sample_num)) +
+    geom_errorbar(aes(ymin = lower.ci,
+                ymax = upper.ci,
+                color = differs)) +
+    geom_point(stat = "identity", aes(fill = "Sample mean"), color = "#7463AC") +
+geom_hline(aes(yintercept = 24.04, linetype = "Population mean"),
+             color = "dodgerblue2") +
+labs(y = "Mean distance to treatment facility with MAT (95% CI)",
+         x = "Sample") +
+      scale_fill_manual(values = "#7463AC", name = "") +
+      scale_color_manual(values = c("#7463AC", "deeppink"), name = "",
+      labels = c("95% CI of sample mean", "95% CI of sample mean")) +
+  scale_linetype_manual(values = c(1, 1), name = "") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+```
+Interpretation:
+* For 4 of the 100 samples, the population mean was outside the            confidence interval, but for 96 of the 100 samples, the population mean   was within 1.96 standard errors of the sample mean. 
+* Being able to say with some certainty how close the characteristics of   a sample are to the population was powerful.
+
+
+####################Confidence interval for percentages################
+
+* If there was such a thing as a confidence interval around the            proportion of successes for a binary variable.
+* Given the normally distributed sampling distribution, the same strategy   for computing confidence intervals can be used.
+* For variables that have only two values (e.g., Yes and No, success and   failure, 1 and 0), the mean of the variable is the same as the           percentage of the group of interest. 
+
+For example, consider a survey of 10 people that asked if they drink coffee or do not drink coffee, where drinking coffee is coded as 1 and not drinking coffee is coded as 0.
+
+```{r}
+# do you drink coffee?
+coffee <- c(1,0,1,1,0,0,0,1,1,1)
+```
+
+```{r}
+# mean of coffee variable
+mean(x = coffee)
+```
+Interpretation: This is also the proportion or, after multiplying by 100, the percentage of people in this sample who drink coffee.
+
+Point to be taken:
+The mean of a binary variable like this one is typically abbreviated as p for proportion rather than m for mean.
+
+Standard error: square_root of p(1-p)/n
+            where p is the mean (proportion) and n is the sample              size
+            
+While 95% confidence intervals are very common, sometimes confidence intervals that are wider or narrower are useful. To compute a wider or narrower confidence interval, replace the 1.96 with the z-score for the interval of interest. The three most common intervals have the following z-scores:
+
+90% confidence interval z-score = 1.645
+95% confidence interval z-score = 1.96
+99% confidence interval z-score = 2.576
+
+Confidence intervals for small samples, usually defined as samples with fewer than 30 observations (Field, 2013), use a t-statistic (will cover in chapter 6) instead of a z-score in computing confidence intervals for means and in other types of analyses.
+
+
+Overall what we learnt about Opioid problem:
+
+* People travel a mean of 24.04 miles just to get to a treatment          facility where they can get medication-assisted therapy. 
+* While there are some effective policies for reducing opioid use, not    all states have adopted these policies. 
+* However, we should keep in mind that the assumptions we made about      states being independent needed more attention before adopting today’s   conclusions as truth. 
+
